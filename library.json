@@ -1,0 +1,19 @@
+{
+    "name": "MiniMIDI",
+    "version": "0.2.0",
+    "description": "Minimalistic MIDI implementation for AtMega microcontrollers.",
+    "keywords": "midi",
+    "license": "MIT",
+    "authors": {
+	"name": "Stefan Hepp",
+	"url": "https://github.com/stefanhepp/",
+	"maintainer": true
+    },
+    "repository":
+    {
+	"type": "git",
+	"url": "https://github.com/stefanhepp/MiniMIDI.git"
+    },
+    "frameworks": "arduino",
+    "platforms": [ "atmelavr" ]
+}
