@@ -8,9 +8,8 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-
+#ifndef MINIMIDI_NO_RECEIVE
 static const uint8_t RX_BUFFER_SIZE = 4;
-static const uint8_t TX_BUFFER_SIZE = 64;
 
 static uint8_t RxBuffer[RX_BUFFER_SIZE];
 static uint8_t RxBufferLength = 0;
@@ -19,6 +18,13 @@ static uint8_t RxExpectedLength = 0;
 
 static ThruMode MidiThruMode = ThruMode::Off;
 static uint8_t MidiChannel = 0;
+#endif
+
+#ifdef MINIMIDI_TX_BUFFER_SIZE
+static const uint8_t TX_BUFFER_SIZE = MINIMIDI_TX_BUFFER_SIZE;
+#else
+static const uint8_t TX_BUFFER_SIZE = 64;
+#endif
 
 static uint8_t TxBuffer[TX_BUFFER_SIZE];
 static uint8_t TxBufferLength = 0;
@@ -26,6 +32,7 @@ static uint8_t TxBufferPos = 0;
 
 static MiniMIDI* MIDI = nullptr;
 
+#ifndef MINIMIDI_NO_RECEIVE
 /**
  * Get the number of data bytes for a particular MIDI status byte
  */
@@ -57,16 +64,6 @@ static uint8_t midiMessageLength(uint8_t status) {
     }
     // Any other voice message is 2 bytes
     return 2;
-}
-
-static void writeByte(uint8_t data)
-{
-    uint8_t head = (TxBufferPos + TxBufferLength) % TX_BUFFER_SIZE;
-    TxBuffer[head] = data;
-    TxBufferLength++;
-
-    // Make sure to trigger an interrupt to send the queued data
-    UCSR0B |= (1<<UDRIE0);
 }
 
 /**
@@ -113,14 +110,26 @@ static void receivedMessage()
     RxBufferLength = 0;
     RxExpectedLength = 0;
 }
+#endif
+
+static void writeByte(uint8_t data)
+{
+    uint8_t head = (TxBufferPos + TxBufferLength) % TX_BUFFER_SIZE;
+    TxBuffer[head] = data;
+    TxBufferLength++;
+
+    // Make sure to trigger an interrupt to send the queued data
+    UCSR0B |= (1<<UDRIE0);
+}
 
 MiniMIDI::MiniMIDI()
-: mChannel(0), mReceiveCallback(nullptr)
+: mChannel(0)
 {
     // Register this instance for callbacks
     MIDI = this;
 }
 
+#ifndef MINIMIDI_NO_RECEIVE
 void MiniMIDI::_processRxMessage(const MIDIMessage &msg)
 {
     if (mReceiveCallback != nullptr) {
@@ -142,11 +151,14 @@ void MiniMIDI::turnThruOn(ThruMode mode)
 {
     MidiThruMode = mode;
 }
+#endif
 
 void MiniMIDI::setInputChannel(uint8_t channel)
 {
     mChannel = channel;
+#ifndef MINIMIDI_NO_RECEIVE
     MidiChannel = channel;
+#endif
 }
 
 uint8_t MiniMIDI::getStatusByte(uint8_t opcode, uint8_t channel) const
@@ -199,7 +211,11 @@ void MiniMIDI::begin(uint8_t channel)
     UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);
 
     // Enabler RX and TX, enable interrupts
+#ifndef MINIMIDI_NO_RECEIVE
     UCSR0B = (1 << RXCIE0)|(1 << RXEN0)|(1 << TXEN0);
+#else
+    UCSR0B = (1 << TXEN0);
+#endif
 }
 
 bool MiniMIDI::sending() const
@@ -243,6 +259,7 @@ void MiniMIDI::sendAllNotesOff(uint8_t channel)
     sendControlChange(MidiControlChangeNumber::AllNotesOff, 0);
 }
 
+#ifndef MINIMIDI_NO_RECEIVE
 ISR(USART_RX_vect)
 {
 
@@ -285,6 +302,7 @@ ISR(USART_RX_vect)
         }
     }
 }
+#endif
 
 ISR(USART_UDRE_vect)
 {

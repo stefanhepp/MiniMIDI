@@ -116,8 +116,9 @@ class MiniMIDI
     private:
         uint8_t mChannel;
 
-        MIDIReceiveCallback mReceiveCallback;
-
+#ifndef MINIMIDI_NO_RECEIVE
+        MIDIReceiveCallback mReceiveCallback = nullptr;
+#endif
         /**
          * Get the MIDI status byte (first byte of message) from opcode and channel.
          */
@@ -127,6 +128,7 @@ class MiniMIDI
 
         void writeMessage3(uint8_t opcode, uint8_t channel, uint8_t data1, uint8_t data2);
 
+#ifndef MINIMIDI_NO_RECEIVE
     public:
         /**
          * Protected function, callback for ISR handler.
@@ -134,24 +136,27 @@ class MiniMIDI
          * Process a received MIDI message, read from ISR handler buffer.
          */
         void _processRxMessage(const MIDIMessage &msg);
+#endif
 
     public:
         MiniMIDI();
 
+#ifndef MINIMIDI_NO_RECEIVE
         void setReceiveCallback(MIDIReceiveCallback callback);
+
+        void turnThruOff();
+
+        void turnThruOn(ThruMode mode);
+#endif
+
+        void setInputChannel(uint8_t channel);
+
+        void begin(uint8_t channel);
 
         /**
          * Return true if there is data currently being sent.
          */
         bool sending() const;
-
-        void turnThruOff();
-
-        void turnThruOn(ThruMode mode);
-
-        void setInputChannel(uint8_t channel);
-
-        void begin(uint8_t channel);
 
         void sendNoteOn(uint8_t note,  uint8_t velocity, uint8_t channel = 0xFF);
 
