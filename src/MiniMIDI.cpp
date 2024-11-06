@@ -32,6 +32,16 @@ static uint8_t TxBufferPos = 0;
 
 static MiniMIDI* MIDI = nullptr;
 
+static void writeByte(uint8_t data)
+{
+    uint8_t head = (TxBufferPos + TxBufferLength) % TX_BUFFER_SIZE;
+    TxBuffer[head] = data;
+    TxBufferLength++;
+
+    // Make sure to trigger an interrupt to send the queued data
+    UCSR0B |= (1<<UDRIE0);
+}
+
 #ifndef MINIMIDI_NO_RECEIVE
 /**
  * Get the number of data bytes for a particular MIDI status byte
@@ -111,16 +121,6 @@ static void receivedMessage()
     RxExpectedLength = 0;
 }
 #endif
-
-static void writeByte(uint8_t data)
-{
-    uint8_t head = (TxBufferPos + TxBufferLength) % TX_BUFFER_SIZE;
-    TxBuffer[head] = data;
-    TxBufferLength++;
-
-    // Make sure to trigger an interrupt to send the queued data
-    UCSR0B |= (1<<UDRIE0);
-}
 
 MiniMIDI::MiniMIDI()
 : mChannel(0)
